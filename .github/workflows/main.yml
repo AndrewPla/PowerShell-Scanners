@@ -1,6 +1,6 @@
 name: Windows PowerShell test
 #
-on: push
+on: [push, pull_request]
 
 jobs:
   pester-test:
