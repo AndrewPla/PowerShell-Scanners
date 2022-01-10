@@ -1,0 +1,33 @@
+name: CI
+#
+on: [push, pull_request]
+
+jobs:
+  pester-test:
+    name: Test Code
+    runs-on: windows-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v2
+      - name: Install Modules
+        shell: pwsh
+        run: |
+          Set-PSRepository PSGallery -InstallationPolicy Trusted
+          Install-Module PSScriptAnalyzer
+      - name: PSScriptAnalyzer
+        shell: pwsh
+        run: |
+          $files = Get-ChildItem -Recurse -Filter *.ps1
+          $issues = foreach ($file in $files){ Invoke-ScriptAnalyzer -Path $file.fullname }
+          
+          $errors   = $issues.Where({$_.Severity -eq 'Error'})
+          $warnings = $issues.Where({$_.Severity -eq 'Warning'})
+          if ($errors) {
+              Write-Error "There were $($errors.Count) errors and $($warnings.Count) warnings total." -ErrorAction Stop
+          } else {
+              Write-Output "There were $($errors.Count) errors and $($warnings.Count) warnings total."
+          }
+      - name: Perform a Pester test from the Tests.ps1 file
+        shell: pwsh
+        run: |
+          Invoke-Pester unit.tests.ps1 -Passthru
